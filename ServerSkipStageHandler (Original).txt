@@ -1,0 +1,77 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
+local workspace = game:GetService("Workspace")
+
+local checkpointStore = DataStoreService:GetDataStore("CheckpointDataStore")
+local SkipStageEvent = ReplicatedStorage:WaitForChild("SkipStage")
+
+-- Save checkpoint helper function (adapted from your checkpoint script)
+local function saveCheckpoint(player, checkpointName)
+	local key = "player_" .. player.UserId
+	local success, err
+	for attempt = 1, 3 do
+		success, err = pcall(function()
+			checkpointStore:UpdateAsync(key, function(oldValue)
+				local newIndex = tonumber(checkpointName:match("%d+"))
+				local oldIndex = tonumber(tostring(oldValue or ""):match("%d+") or "0")
+				if newIndex and newIndex > oldIndex then
+					return checkpointName
+				else
+					return oldValue
+				end
+			end)
+		end)
+		if success then
+			print("[SkipStage] Saved checkpoint '" .. checkpointName .. "' for player " .. player.Name)
+			return true
+		else
+			warn("[SkipStage] Attempt " .. attempt .. " failed to save checkpoint for " .. player.Name .. ": " .. tostring(err))
+			wait(0.5)
+		end
+	end
+	return false
+end
+
+SkipStageEvent.OnServerEvent:Connect(function(player)
+	print("[SkipStage] Received request from player:", player.Name)
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		warn("[SkipStage] Leaderstats not found for player:", player.Name)
+		return
+	end
+
+	local obstaclesCompleted = leaderstats:FindFirstChild("Obstacles Completed")
+	if not obstaclesCompleted then
+		warn("[SkipStage] Obstacles Completed not found in leaderstats for player:", player.Name)
+		return
+	end
+
+	local currentObstacle = obstaclesCompleted.Value
+	local nextCheckpointName = "Checkpoint" .. tostring(currentObstacle + 1)
+	local nextCheckpointPart = workspace.Checkpoints:FindFirstChild(nextCheckpointName)
+	if not nextCheckpointPart then
+		print("[SkipStage] No next checkpoint found at:", nextCheckpointName)
+		return
+	end
+
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart", 5)
+	if not hrp then
+		warn("[SkipStage] HumanoidRootPart not found for player:", player.Name)
+		return
+	end
+
+	-- Update leaderboard value
+	obstaclesCompleted.Value = currentObstacle + 1
+
+	-- Save checkpoint persistently
+	local saved = saveCheckpoint(player, nextCheckpointName)
+	if not saved then
+		warn("[SkipStage] Failed to save checkpoint for player " .. player.Name)
+	end
+
+	-- Teleport player
+	hrp.CFrame = nextCheckpointPart.CFrame + Vector3.new(0, 5, 0)
+	print("[SkipStage] Teleported player", player.Name, "to checkpoint", obstaclesCompleted.Value)
+end)
