@@ -1,30 +1,101 @@
-🚀 features
-huge obby: hundreds of handcrafted stages that just keep going.
+# Pixel Climb
 
-clean visuals: high-contrast colors so u can actually see where you're jumping.
+Server-side Luau codebase for Pixel Climb — a 240-stage precision platformer built on Roblox. This repository contains every script that runs on the server, including player progression, prestige, collision handling, tool logic, and admin utilities.
 
-gets harder as u go: the climb starts easy but gets way more intense the higher you get.
+**Watch the demo:** [YouTube](https://www.youtube.com/watch?v=Yc1nPrDXe_E)
 
-play anywhere: fully optimized for PC, mobile, and console.
+---
 
-🛠 tech stuff
+## Repository Structure
 
-built this using professional workflows to keep things stable
+```
+pixel-climb/
+├── src/
+│   ├── server/          # ServerScriptService scripts
+│   │   ├── CheckpointAndLeaderboard.luau   # Core progression — DataStore, leaderboard, respawn
+│   │   ├── PrestigeScript.luau             # Prestige trigger, confirmation, reset flow
+│   │   ├── PrestigeBadge.luau              # Badge awards tied to prestige milestones
+│   │   ├── PlayerCollision.luau            # Per-player collision groups (no player-on-player stacking)
+│   │   ├── PlayerRole.luau                 # Group-rank-based role assignment
+│   │   ├── ServerSkipStageHandler.luau     # Server-authoritative stage-skip via gamepass
+│   │   └── AutomaticMembersToDonatorPromoter.luau
+│   ├── tools/           # LocalScripts parented inside tool instances
+│   │   ├── FlyingCarpet.luau
+│   │   ├── GravityCoil.luau
+│   │   └── SpeedCoil.luau
+│   └── admin/
+│       └── AdminTeleport.luau              # Consolidated admin teleport handler
+├── legacy/              # Original script revisions kept for reference — do not deploy
+├── docs/
+│   ├── setup.md
+│   └── architecture.md
+├── CONTRIBUTING.md
+├── LICENSE
+└── README.md
+```
 
-engine: Roblox Studio
+---
 
-language: Luau
+## How It Works
 
-UI/UX: custom interfaces that look good on any screen size.
+### Progression
 
-🤝 want to help?
+Each stage is a `BasePart` named `Checkpoint<N>` inside a `Checkpoints` folder in Workspace. When a player touches a checkpoint the server compares the stage number against their stored furthest stage and only records forward progress. On rejoin the player spawns at their last checkpoint.
 
-we love community contributions! honestly, whether u script, build, or just playtest, here is how to help out:
+Two separate DataStores are used:
 
-found a bug?: if u find a skip or a broken stage just post an forum in the community!
+| DataStore | Key | Value |
+|---|---|---|
+| `CheckpointData` | `player_<UserId>` | Checkpoint name string, e.g. `"Checkpoint47"` |
+| `PrestigeData` | `player_<UserId>` | Integer prestige level |
 
-code stuff: fork it, make a branch, and send a PR. just keep the commit messages readable pls.
+Saves are asynchronous (`task.spawn`) to avoid blocking gameplay. Both stores are read on join and written on leave, with an additional mid-session save on every new checkpoint reached.
 
-made with ❤️ by Apex Realms Studios.
+### Prestige
 
-Game Demo video : https://www.youtube.com/watch?v=Yc1nPrDXe_E
+A player who completes the required number of stages (default: 100) and touches the `PrestigeTrigger` part is shown a confirmation GUI. On confirmation the server resets their checkpoint and stage count, increments their prestige level, saves both DataStores, and reloads their character.
+
+### Admin Teleport
+
+The individual per-stage teleport scripts have been replaced by a single `AdminTeleport` handler. Clients fire a `RemoteEvent` with a target stage number or destination name. The server verifies the player's admin status before teleporting them, so exploiters cannot trigger it client-side.
+
+---
+
+## Setup
+
+### Prerequisites
+
+- Roblox Studio (any recent version)
+- A published Roblox place (DataStore access requires a live game)
+- The game's group ID if you intend to use `PlayerRole.luau` or `AutomaticMembersToDonatorPromoter.luau`
+
+### Steps
+
+1. Clone or download this repository.
+2. Open your place file in Roblox Studio.
+3. Move each script in `src/server/` into **ServerScriptService**.
+4. Move each script in `src/tools/` into its corresponding tool object in **ServerStorage** or the **StarterPack**.
+5. Move `src/admin/AdminTeleport.luau` into **ServerScriptService**.
+6. Create a `Folder` named `Checkpoints` in Workspace and populate it with `BasePart` objects named `Checkpoint1`, `Checkpoint2`, etc.
+7. Open `PlayerRole.luau` and `AutomaticMembersToDonatorPromoter.luau` and replace the placeholder `GROUP_ID` values with your actual group ID.
+8. Open `PrestigeBadge.luau` and replace the placeholder badge IDs with your actual badge IDs.
+9. Open `AdminTeleport.luau` and add your Roblox `UserId` to `ADMIN_IDS`.
+10. Publish and test in a live server — DataStore calls do not work in Studio offline mode.
+
+See [docs/setup.md](docs/setup.md) for a more detailed walkthrough.
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## License
+
+See [LICENSE](LICENSE).
+
+---
+
+*Built and maintained by [Apex Realms Studios](https://github.com/Abdidev1).*
