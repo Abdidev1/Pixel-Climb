@@ -4,37 +4,6 @@ Server-side Luau codebase for Pixel Climb — a 240-stage precision platformer b
 
 **Watch the demo:** [YouTube](https://www.youtube.com/watch?v=Yc1nPrDXe_E)
 
----
-
-## Repository Structure
-
-```
-pixel-climb/
-├── src/
-│   ├── server/          # ServerScriptService scripts
-│   │   ├── CheckpointAndLeaderboard.luau   # Core progression — DataStore, leaderboard, respawn
-│   │   ├── PrestigeScript.luau             # Prestige trigger, confirmation, reset flow
-│   │   ├── PrestigeBadge.luau              # Badge awards tied to prestige milestones
-│   │   ├── PlayerCollision.luau            # Per-player collision groups (no player-on-player stacking)
-│   │   ├── PlayerRole.luau                 # Group-rank-based role assignment
-│   │   ├── ServerSkipStageHandler.luau     # Server-authoritative stage-skip via gamepass
-│   │   └── AutomaticMembersToDonatorPromoter.luau
-│   ├── tools/           # LocalScripts parented inside tool instances
-│   │   ├── FlyingCarpet.luau
-│   │   ├── GravityCoil.luau
-│   │   └── SpeedCoil.luau
-│   └── admin/
-│       └── AdminTeleport.luau              # Consolidated admin teleport handler
-├── legacy/              # Original script revisions kept for reference — do not deploy
-├── docs/
-│   ├── setup.md
-│   └── architecture.md
-├── CONTRIBUTING.md
-├── LICENSE
-└── README.md
-```
-
----
 
 ## How It Works
 
